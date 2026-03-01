@@ -33,7 +33,7 @@ export default function AccountantOverview() {
   const netBalance     = totalCollected - totalExpenses;
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="space-y-6">
       {/* Term Financial Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[

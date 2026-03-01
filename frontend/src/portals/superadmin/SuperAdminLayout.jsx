@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Shield, Building2, Users, Mail, BarChart3,
-  ChevronLeft, ChevronRight, LogOut, Activity, UserCog
+  ChevronLeft, ChevronRight, LogOut, Activity, UserCog, X, Menu
 } from 'lucide-react';
 import { useSuperAuth } from './SuperAuthContext';
 
@@ -13,16 +13,25 @@ const NAV = [
   { path: '/superadmin/emails', label: 'Email Log', icon: Mail },
 ];
 
-export default function SuperAdminLayout() {  
+export default function SuperAdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { admin, logout } = useSuperAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const initials = admin?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'SA';
 
+  useEffect(() => { setMobileOpen(false); }, [location]);
+
   return (
-    <div className="flex h-screen bg-gray-950 text-white">
+    <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-30 bg-slate-900/60 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <aside className={`relative flex flex-col border-r border-gray-800 transition-all duration-300 shrink-0 ${collapsed ? 'w-14' : 'w-60'}`}>
+      <aside className={`flex flex-col border-r border-gray-800 shrink-0 h-screen fixed lg:relative z-40 bg-gray-950 sidebar-transition ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${collapsed ? 'lg:w-[72px]' : 'w-[240px]'}`}>
         <div className={`flex items-center gap-3 p-3 border-b border-gray-800 ${collapsed ? 'justify-center' : ''}`}>
           <div className="w-9 h-9 rounded-xl bg-orange-600 flex items-center justify-center shrink-0 shadow-lg shadow-orange-900/40">
             <Shield className="w-5 h-5 text-white" />
@@ -33,6 +42,7 @@ export default function SuperAdminLayout() {
               <p className="text-[10px] text-gray-600">Platform Control</p>
             </div>
           )}
+          {mobileOpen && <button onClick={() => setMobileOpen(false)} className="ml-auto text-gray-400 hover:text-white p-1"><X className="w-4 h-4" /></button>}
         </div>
 
         <nav className="flex-1 py-3 px-2 space-y-0.5">
@@ -67,27 +77,41 @@ export default function SuperAdminLayout() {
         </div>
 
         <button onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-16 w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center text-white shadow-md hover:bg-orange-500 z-10">
+          className="absolute -right-3 top-16 w-6 h-6 bg-orange-600 rounded-full hidden lg:flex items-center justify-center text-white shadow-md hover:bg-orange-500 z-10">
           {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
         </button>
       </aside>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-screen">
         <header className="border-b border-gray-800 px-5 py-3 flex items-center justify-between bg-gray-900/50 sticky top-0 z-10 backdrop-blur">
-          <div>
-            <p className="text-sm font-bold text-white">Smart Bursar Platform</p>
-            <p className="text-[10px] text-gray-600">Global Administration · {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+          <div className="flex items-center">
+            <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden p-2 -ml-1 text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded-lg transition-colors mr-2">
+              <Menu className="w-5 h-5" />
+            </button>
+            {collapsed && (
+              <button onClick={() => setCollapsed(false)} className="hidden lg:flex p-1.5 text-gray-500 hover:bg-gray-800 rounded-lg mr-2">
+                <Menu className="w-4 h-4" />
+              </button>
+            )}
+            <div>
+              <p className="text-sm font-bold text-white">Smart Bursar Platform</p>
+              <p className="text-[10px] text-gray-600">Global Administration · {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] bg-orange-500/10 text-orange-400 border border-orange-500/20 font-bold px-2.5 py-1 rounded-full">
-              SUPER ADMIN
-            </span>
+            <div className="hidden sm:block text-right">
+              <p className="text-xs font-semibold text-gray-300 leading-none">{admin?.name}</p>
+              <p className="text-[10px] text-orange-400 mt-0.5">Super Admin</p>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-orange-700 text-white flex items-center justify-center text-xs font-bold shrink-0">{initials}</div>
+            <button onClick={() => { logout(); navigate('/superadmin/login'); }}
+              className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-gray-800 rounded-lg transition-colors" title="Logout">
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </header>
-        <main className="flex-1 p-5 overflow-y-auto">
-          <Outlet />
-        </main>
+        <main className="flex-1 overflow-y-auto"><div className="p-4 sm:p-5 lg:p-6"><Outlet /></div></main>
       </div>
     </div>
   );

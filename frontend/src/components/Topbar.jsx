@@ -1,46 +1,70 @@
 import { Menu, Bell } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import { SCHOOL, TODAY } from "../data/mockData";
+import { useAuth } from "../context/AuthContext";
 
 const PAGE_TITLES = {
-  "/":           { title: "Daily Operations",  sub: "Today's activity at a glance" },
-  "/collect":    { title: "Collect Payment",   sub: "Record a student fee payment and print receipt" },
-  "/student":    { title: "Student Fee Card",  sub: "View full ledger for any student" },
-  "/cashbook":   { title: "Cash Book",         sub: "Today's running record of all transactions" },
-  "/class":      { title: "Class Collection",  sub: "Fee payment status by class" },
-  "/defaulters": { title: "Defaulters List",   sub: "Students with outstanding balances" },
-  "/expenses":   { title: "Expenses",          sub: "Log and track school expenditures" },
-  "/settings":   { title: "Settings",          sub: "Fee structure and system configuration" },
+  "/app":              { title: "Daily Operations",  sub: "Today's activity at a glance" },
+  "/app/collect":      { title: "Collect Payment",   sub: "Record a fee payment & print receipt" },
+  "/app/student":      { title: "Student Fee Card",  sub: "View full ledger for any student" },
+  "/app/cashbook":     { title: "Cash Book",         sub: "Running record of all transactions" },
+  "/app/enrollment":   { title: "Student Enrollment",sub: "Register and manage students" },
+  "/app/class":        { title: "Class Collection",  sub: "Fee payment status by class" },
+  "/app/defaulters":   { title: "Defaulters List",   sub: "Students with outstanding balances" },
+  "/app/expenses":     { title: "Expenses",          sub: "Log and track school expenditures" },
+  "/app/settings":     { title: "Settings",          sub: "Fee structure and system configuration" },
 };
 
-export default function Topbar({ collapsed, setCollapsed }) {
+export default function Topbar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const { pathname } = useLocation();
-  const page = PAGE_TITLES[pathname] || PAGE_TITLES["/"];
+  const { user } = useAuth();
+  const page = PAGE_TITLES[pathname] || { title: "Smart Bursar", sub: "School Finance Management" };
+
+  const initials = user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'US';
+  const today = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between sticky top-0 z-10">
+    <header className="bg-white border-b border-gray-100 px-4 py-0 flex items-center justify-between h-14 shrink-0 z-20 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
       <div className="flex items-center gap-3">
+        {/* Mobile hamburger — always visible on mobile */}
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="lg:hidden p-2 -ml-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+          aria-label="Toggle menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Desktop collapse toggle — when collapsed */}
         {collapsed && (
-          <button onClick={() => setCollapsed(false)} className="p-1 text-gray-500 hover:text-gray-800">
+          <button
+            onClick={() => setCollapsed(false)}
+            className="hidden lg:flex p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+          >
             <Menu className="w-4 h-4" />
           </button>
         )}
+
         <div>
-          <h1 className="text-sm font-bold text-gray-900">{page.title}</h1>
-          <p className="text-[10px] text-gray-400">{page.sub}</p>
+          <h1 className="text-[15px] font-bold text-gray-900 leading-tight">{page.title}</h1>
+          <p className="text-[11px] text-gray-400 hidden sm:block">{page.sub}</p>
         </div>
       </div>
-      <div className="flex items-center gap-3">
-        <div className="text-right hidden sm:block">
-          <p className="text-xs font-semibold text-gray-800">{SCHOOL.term} · {SCHOOL.year}</p>
-          <p className="text-[10px] text-gray-400">{TODAY}</p>
+
+      <div className="flex items-center gap-1.5 sm:gap-3">
+        {/* Date pill — hidden on smallest screens */}
+        <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-gray-100 rounded-xl px-3 py-1.5">
+          <span className="text-[11px] font-semibold text-gray-700">{today}</span>
         </div>
-        <button className="relative p-1.5 rounded-full hover:bg-gray-100">
-          <Bell className="w-4 h-4 text-gray-500" />
-          <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full" />
+
+        {/* Notifications */}
+        <button className="relative p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
+          <Bell className="w-4.5 h-4.5" style={{width:'18px',height:'18px'}} />
+          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full ring-1 ring-white" />
         </button>
-        <div className="w-7 h-7 rounded-full bg-blue-700 text-white flex items-center justify-center text-xs font-bold">
-          US
+
+        {/* Avatar */}
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center text-[11px] font-bold shadow-sm cursor-default select-none">
+          {initials}
         </div>
       </div>
     </header>

@@ -13,7 +13,7 @@ export default function AcademicTerms() {
   if(loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-5 h-5 text-orange-500 animate-spin"/></div>;
 
   return (
-    <div className="max-w-3xl space-y-5">
+    <div className="space-y-5">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="bg-gray-900 text-white px-5 py-3"><p className="text-xs font-bold uppercase tracking-widest">Academic Terms</p></div>
         <table className="w-full text-xs">

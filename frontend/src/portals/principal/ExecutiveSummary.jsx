@@ -45,7 +45,7 @@ export default function ExecutiveSummary() {
   const unpaid     = Number(term.unpaid||0);
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="space-y-6">
       {/* Welcome */}
       <div className="bg-gradient-to-r from-indigo-900 to-indigo-700 rounded-2xl p-6 text-white">
         <p className="text-xs text-indigo-300">Executive Summary · {summary?.term?.term_name} {summary?.term?.academic_year}</p>

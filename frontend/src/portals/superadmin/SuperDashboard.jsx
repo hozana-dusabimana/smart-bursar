@@ -30,7 +30,7 @@ export default function SuperDashboard() {
   ];
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="space-y-6">
       {/* Welcome */}
       <div className="bg-gradient-to-r from-orange-600/20 to-orange-800/10 border border-orange-600/20 rounded-2xl p-6">
         <p className="text-xs text-orange-400 font-bold uppercase tracking-widest mb-1">Platform Overview</p>

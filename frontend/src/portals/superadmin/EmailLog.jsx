@@ -60,7 +60,7 @@ export default function EmailLog() {
   const counts = emails.reduce((acc, e) => { acc[e.status] = (acc[e.status] || 0) + 1; return acc; }, {});
 
   return (
-    <div className="max-w-5xl space-y-5">
+    <div className="space-y-5">
 
       {/* Toast */}
       {toast.msg && (

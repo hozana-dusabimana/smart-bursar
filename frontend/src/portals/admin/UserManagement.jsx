@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Plus, UserCheck, UserX, Edit2, Loader2, X, AlertCircle, CheckCircle2, Shield } from 'lucide-react';
+import { Plus, UserCheck, UserX, Edit2, Loader2, X, AlertCircle, CheckCircle2, Shield, FileDown, Search } from 'lucide-react';
 import api from '../../api/client';
+import { exportPDF } from '../../utils/pdfExport';
 
 const ROLES = ['bursar', 'accountant', 'principal', 'admin', 'parent'];
 const ROLE_COLORS = {
@@ -17,12 +18,17 @@ export default function UserManagement() {
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'bursar' });
   const [saving, setSaving] = useState(false);
   const [formErr, setFormErr] = useState('');
+  const [search, setSearch] = useState('');
+  const [school, setSchool] = useState({});
 
   const load = () => {
     setLoading(true);
     api.get('/users').then(r => setUsers(r.data || [])).finally(() => setLoading(false));
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    api.get('/settings').then(r => setSchool(r.data?.config || {})).catch(() => {});
+    load();
+  }, []);
 
   const flash = (text, type = 'success') => { setMsg({ text, type }); setTimeout(() => setMsg({ text: '', type: '' }), 3500); };
 
@@ -62,8 +68,37 @@ export default function UserManagement() {
     finally { setActing(null); }
   };
 
+  const shown = users.filter(u =>
+    !search ||
+    u.name?.toLowerCase().includes(search.toLowerCase()) ||
+    u.email?.toLowerCase().includes(search.toLowerCase()) ||
+    u.role?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleExport = () => {
+    exportPDF({
+      title:      'User Accounts',
+      subtitle:   `${users.length} total · ${users.filter(u => u.is_active).length} active`,
+      schoolName: school.school_name,
+      filename:   `user-accounts-${new Date().toISOString().slice(0, 10)}.pdf`,
+      summaryRows: ROLES.map(r => ({
+        label: r.charAt(0).toUpperCase() + r.slice(1),
+        value: users.filter(u => u.role === r).length,
+      })),
+      columns: ['#', 'Name', 'Email', 'Role', 'Status', 'Joined'],
+      rows: shown.map((u, i) => [
+        String(i + 1).padStart(2, '0'),
+        u.name,
+        u.email,
+        u.role,
+        u.is_active ? 'Active' : 'Disabled',
+        String(u.created_at || '').slice(0, 10),
+      ]),
+    });
+  };
+
   return (
-    <div className="max-w-4xl space-y-5">
+    <div className="space-y-5">
       {msg.text && (
         <div className={`flex items-center gap-2 rounded-lg p-3 border ${msg.type === 'error' ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
           {msg.type === 'error' ? <AlertCircle className="w-4 h-4 text-red-500 shrink-0" /> : <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
@@ -72,14 +107,34 @@ export default function UserManagement() {
       )}
 
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-bold text-gray-900">User Accounts</p>
-          <p className="text-xs text-gray-500">{users.length} total · {users.filter(u => u.is_active).length} active</p>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <p className="text-sm font-bold text-gray-900">User Accounts</p>
+            <p className="text-xs text-gray-500">{users.length} total · {users.filter(u => u.is_active).length} active</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleExport}
+              className="flex items-center gap-2 bg-slate-700 text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors">
+              <FileDown className="w-3.5 h-3.5" /> Export PDF
+            </button>
+            <button onClick={() => setShowAdd(true)}
+              className="flex items-center gap-2 bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-orange-700">
+              <Plus className="w-3.5 h-3.5" /> Add User
+            </button>
+          </div>
         </div>
-        <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-orange-700">
-          <Plus className="w-3.5 h-3.5" /> Add User
-        </button>
+        <div className="relative">
+          <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name, email, or role…"
+            className="w-full pl-9 pr-8 py-2 border border-gray-200 rounded-xl text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Role summary pills */}
@@ -96,7 +151,10 @@ export default function UserManagement() {
 
       {/* Users Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="bg-gray-900 text-white px-5 py-3"><p className="text-xs font-bold uppercase tracking-widest">All User Accounts</p></div>
+        <div className="bg-gray-900 text-white px-5 py-3 flex items-center justify-between">
+          <p className="text-xs font-bold uppercase tracking-widest">All User Accounts</p>
+          {search && <span className="text-[10px] text-gray-400 bg-white/10 px-2 py-0.5 rounded-full">{shown.length} shown</span>}
+        </div>
         {loading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="w-5 h-5 text-orange-500 animate-spin" /><span className="ml-2 text-sm text-gray-500">Loading...</span></div>
         ) : (
@@ -109,7 +167,7 @@ export default function UserManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {users.map((u, i) => (
+              {shown.map((u, i) => (
                 <tr key={u.id} className={`${!u.is_active ? 'opacity-60 bg-gray-50' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
                   <td className="px-4 py-3 text-gray-400 font-mono">{String(i + 1).padStart(2, '0')}</td>
                   <td className="px-4 py-3">
@@ -149,6 +207,9 @@ export default function UserManagement() {
                   </td>
                 </tr>
               ))}
+              {shown.length === 0 && (
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400 text-sm">No users match the search.</td></tr>
+              )}
             </tbody>
           </table>
         )}

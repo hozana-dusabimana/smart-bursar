@@ -56,7 +56,7 @@ export default function Notifications() {
   const totalReceipts = stats.filter(s=>s.template==='receipt').reduce((a,s)=>a+Number(s.count),0);
 
   return (
-    <div className="max-w-5xl space-y-5">
+    <div className="space-y-5">
       {msg.text && (
         <div className={`flex items-center gap-2 rounded-xl p-3 border ${msg.type==='error' ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
           {msg.type==='error'

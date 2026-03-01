@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, UserCheck, UserX, Loader2, X, AlertCircle, CheckCircle2, GraduationCap, Send } from 'lucide-react';
+import { Plus, Search, Edit2, UserCheck, UserX, Loader2, X, AlertCircle, CheckCircle2, GraduationCap, Send, FileDown } from 'lucide-react';
 import api from '../api/client';
 import Badge from '../components/Badge';
 import { fmt } from '../utils/format';
+import { exportPDF } from '../utils/pdfExport';
 
 const CLASSES = ['Nursery', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6'];
 const STREAMS = ['A', 'B', 'C', 'D'];
@@ -74,10 +75,10 @@ function StudentModal({ student, onClose, onSaved }) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-xl flex flex-col max-h-[90vh] overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shrink-0">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white px-6 py-4 flex items-center justify-between shrink-0">
           <div>
             <p className="text-sm font-extrabold">{student ? 'Edit Student' : 'Enrol New Student'}</p>
             <p className="text-[10px] text-slate-400">{student ? `Editing: ${student.full_name}` : 'Register a new student in the system'}</p>
@@ -217,23 +218,45 @@ export default function StudentEnrollment() {
     unpaid: students.filter(s => s.paymentStatus === 'Unpaid').length,
   };
 
+  const handleExport = () => {
+    exportPDF({
+      title:      'Student Register',
+      subtitle:   `Class: ${cls === 'All' ? 'All Classes' : cls}  ·  ${filtered.length} students`,
+      filename:   `student-register-${new Date().toISOString().slice(0,10)}.pdf`,
+      orientation: 'landscape',
+      summaryRows: [
+        { label: 'Total',   value: stats.total   },
+        { label: 'Cleared', value: stats.cleared  },
+        { label: 'Partial', value: stats.partial  },
+        { label: 'Unpaid',  value: stats.unpaid   },
+      ],
+      columns: ['#','Adm. No.','Full Name','Class','Guardian','Phone','Total Fee','Paid','Balance','Status'],
+      rows: filtered.map((s, i) => [
+        String(i+1).padStart(3,'0'), s.admission_no, s.full_name,
+        `${s.class} ${s.stream}`, s.guardian_name||'—', s.guardian_tel||'—',
+        Number(s.fee||0).toLocaleString(), Number(s.paid||0).toLocaleString(),
+        Number(s.balance||0).toLocaleString(), s.paymentStatus||'—',
+      ]),
+    });
+  };
+
   return (
-    <div className="max-w-5xl space-y-5">
+    <div className="space-y-5">
       {msg && (
-        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-          <CheckCircle2 className="w-4 h-4 text-emerald-500" /><p className="text-xs text-emerald-700 font-medium">{msg}</p>
+        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /><p className="text-xs text-emerald-700 font-medium">{msg}</p>
         </div>
       )}
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total Students', value: stats.total, color: 'border-l-4 border-blue-600  bg-white' },
-          { label: 'Fully Cleared', value: stats.cleared, color: 'border-l-4 border-emerald-500 bg-emerald-50' },
-          { label: 'Partial Payment', value: stats.partial, color: 'border-l-4 border-blue-400  bg-blue-50' },
-          { label: 'No Payment', value: stats.unpaid, color: 'border-l-4 border-red-500   bg-red-50' },
+          { label: 'Total Students', value: stats.total, color: 'border-blue-600' },
+          { label: 'Fully Cleared', value: stats.cleared, color: 'border-emerald-500' },
+          { label: 'Partial Payment', value: stats.partial, color: 'border-blue-400' },
+          { label: 'No Payment', value: stats.unpaid, color: 'border-red-500' },
         ].map(s => (
-          <div key={s.label} className={`${s.color} rounded-xl shadow-sm p-4`}>
+          <div key={s.label} className={`border-l-4 ${s.color} rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-gray-100`}>
             <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide">{s.label}</p>
             <p className="text-2xl font-extrabold text-gray-900 mt-1">{s.value}</p>
           </div>
@@ -241,13 +264,13 @@ export default function StudentEnrollment() {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex gap-2 flex-1 flex-wrap">
-          <div className="relative">
+      <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-gray-100 p-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="flex flex-col sm:flex-row gap-2 flex-1">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search by name or admission no…"
-              className="pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-56" />
+              className="w-full sm:w-56 pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <select value={cls} onChange={e => setCls(e.target.value)}
             className="border border-gray-200 rounded-xl px-3 py-2 text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -255,34 +278,44 @@ export default function StudentEnrollment() {
             {CLASSES.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
-        <button onClick={() => setModal('add')} className="flex items-center gap-2 bg-blue-700 text-white text-xs font-extrabold px-5 py-2 rounded-xl hover:bg-blue-800 shadow-sm">
-          <Plus className="w-3.5 h-3.5" /> Enrol Student
-        </button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <button onClick={handleExport} className="flex items-center justify-center gap-2 bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-slate-800">
+            <FileDown className="w-3.5 h-3.5" /> Export PDF
+          </button>
+          <button onClick={() => setModal('add')} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-700 text-white text-xs font-extrabold px-5 py-2 rounded-xl hover:bg-blue-800 shadow-sm">
+            <Plus className="w-3.5 h-3.5" /> Enrol Student
+          </button>
+        </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="bg-slate-900 text-white px-5 py-3 flex items-center justify-between">
+      <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-gray-100 overflow-hidden">
+        <div className="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between">
           <p className="text-xs font-extrabold uppercase tracking-widest">
             <GraduationCap className="w-3.5 h-3.5 inline mr-2" />Student Register — {filtered.length} students
           </p>
-          <p className="text-[10px] text-slate-400">Click a row to edit</p>
+          <p className="text-[10px] text-slate-400 hidden sm:block">Click a row to edit</p>
         </div>
         {loading ? (
           <div className="flex items-center justify-center py-16"><Loader2 className="w-5 h-5 text-blue-600 animate-spin" /><span className="ml-2 text-sm text-gray-500">Loading students…</span></div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-            <GraduationCap className="w-8 h-8 mb-2 text-gray-200" />
-            <p className="text-sm font-semibold">No students found</p>
-            <button onClick={() => setModal('add')} className="mt-3 text-xs text-blue-600 hover:underline">+ Enrol first student</button>
+          <div className="flex flex-col items-center justify-center py-20 text-gray-400 px-4 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-4">
+              <GraduationCap className="w-8 h-8 text-gray-300" />
+            </div>
+            <p className="text-sm font-semibold text-gray-600">No students found</p>
+            <p className="text-xs text-gray-400 mt-1">Try adjusting your search or class filter</p>
+            <button onClick={() => setModal('add')} className="mt-4 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-xl transition-colors">
+              + Enrol First Student
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-gray-100 border-b-2 border-gray-300">
+                <tr className="bg-gray-50 border-b border-gray-200">
                   {['#', 'Admission No.', 'Full Name', 'Class', 'Guardian', 'Phone', 'Email', 'Fee', 'Paid', 'Balance', 'Status', ''].map(h => (
-                    <th key={h} className={`px-3 py-2.5 font-bold text-gray-700 ${['Fee', 'Paid', 'Balance'].includes(h) ? 'text-right' : h === '' ? 'text-center' : 'text-left'}`}>{h}</th>
+                    <th key={h} className={`px-3 py-2.5 text-[11px] uppercase tracking-wide font-bold text-gray-500 ${['Fee', 'Paid', 'Balance'].includes(h) ? 'text-right' : h === '' ? 'text-center' : 'text-left'}`}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -293,7 +326,7 @@ export default function StudentEnrollment() {
                     className={`cursor-pointer transition-colors
                       ${s.paymentStatus === 'Unpaid' ? 'bg-red-50/40 hover:bg-red-50'
                         : s.paymentStatus === 'Cleared' ? 'bg-emerald-50/20 hover:bg-emerald-50'
-                          : 'bg-white hover:bg-blue-50/30'}`}>
+                          : 'bg-white hover:bg-blue-50/40'}`}>
                     <td className="px-3 py-2.5 text-gray-400">{String(i + 1).padStart(3, '0')}</td>
                     <td className="px-3 py-2.5 font-mono text-gray-600 text-[11px]">{s.admission_no}</td>
                     <td className="px-3 py-2.5 font-bold text-gray-900">{s.full_name}</td>
@@ -305,20 +338,22 @@ export default function StudentEnrollment() {
                     <td className="px-3 py-2.5 text-right font-semibold text-emerald-700">{Number(s.paid || 0).toLocaleString()}</td>
                     <td className={`px-3 py-2.5 text-right font-bold ${Number(s.balance || 0) > 0 ? 'text-red-700' : 'text-emerald-700'}`}>{Number(s.balance || 0).toLocaleString()}</td>
                     <td className="px-3 py-2.5"><Badge label={s.paymentStatus || 'No Invoice'} /></td>
-                    <td className="px-3 py-2.5 text-center flex items-center justify-center gap-1">
-                      {s.guardian_email && (
-                        <button
-                          onClick={(e) => handleQuickResend(e, s)}
-                          disabled={quickResending === s.id}
-                          title="Resend Invitation"
-                          className="p-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors disabled:opacity-50"
-                        >
-                          {quickResending === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                    <td className="px-3 py-2.5 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        {s.guardian_email && (
+                          <button
+                            onClick={(e) => handleQuickResend(e, s)}
+                            disabled={quickResending === s.id}
+                            title="Resend Invitation"
+                            className="p-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors disabled:opacity-50"
+                          >
+                            {quickResending === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                        <button onClick={(e) => { e.stopPropagation(); setModal(s); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors">
+                          <Edit2 className="w-3.5 h-3.5" />
                         </button>
-                      )}
-                      <button onClick={() => setModal(s)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

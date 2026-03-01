@@ -256,7 +256,7 @@ export default function SchoolManagement() {
   );
 
   return (
-    <div className="max-w-6xl space-y-5">
+    <div className="space-y-5">
       {msg && (
         <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0"/><p className="text-xs text-emerald-300 font-medium">{msg}</p>

@@ -8,8 +8,16 @@ import Badge from '../components/Badge';
 function ReceiptModal({ receipt, school, onClose }) {
   if (!receipt) return null;
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative">
+        {/* Close button top-right */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
         <div className="p-6">
           <div className="text-center border-b-2 border-gray-900 pb-4 mb-4">
             <p className="text-base font-extrabold text-gray-900 uppercase tracking-wide">{school?.school_name}</p>
@@ -72,10 +80,10 @@ function ReceiptModal({ receipt, school, onClose }) {
         </div>
 
         <div className="border-t border-gray-100 p-4 flex gap-3 bg-gray-50">
-          <button onClick={onClose} className="flex-1 bg-white border border-gray-200 text-gray-700 text-xs font-semibold py-2 rounded-lg hover:bg-gray-100">
+          <button onClick={onClose} className="flex-1 bg-white border border-gray-200 text-gray-700 text-xs font-semibold py-2.5 rounded-xl hover:bg-gray-100 transition-colors">
             Close
           </button>
-          <button onClick={() => window.print()} className="flex-1 bg-blue-700 text-white text-xs font-semibold py-2 rounded-lg hover:bg-blue-800 flex items-center justify-center gap-2">
+          <button onClick={() => window.print()} className="flex-1 bg-blue-700 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-blue-800 flex items-center justify-center gap-2 transition-colors">
             <Printer className="w-3.5 h-3.5" /> Print Receipt
           </button>
         </div>
@@ -160,206 +168,235 @@ export default function CollectPayment() {
     : summary.paid > 0 ? 'Partial' : 'Unpaid';
 
   return (
-    <div className="max-w-4xl space-y-5">
+    <div className="space-y-5">
 
       {/* Step 1 – Search */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">1</div>
-          <p className="text-sm font-bold text-gray-900">Search Student</p>
-        </div>
-        <div className="relative">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input type="text" value={query}
-            onChange={e => { setQuery(e.target.value); setSelected(null); }}
-            placeholder="Type student name or admission number..."
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {searching && <Loader2 className="w-4 h-4 text-blue-500 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />}
-        </div>
-
-        {results.length > 0 && !selected && (
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {results.map(s => (
-              <button key={s.id} onClick={() => setSelected(s)}
-                className="text-left bg-white border border-gray-200 rounded-xl p-3 hover:border-blue-400 hover:shadow-md transition-all">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">{s.full_name}</p>
-                    <p className="text-[11px] text-gray-500">{s.admission_no} · Class {s.class} {s.stream}</p>
-                  </div>
-                  <Badge label={s.paymentStatus || 'No Invoice'} />
-                </div>
-                <p className="text-[11px] text-red-600 mt-1 font-semibold">Balance: {fmt(s.balance || 0)}</p>
-              </button>
-            ))}
+      <div className="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden">
+        <div className="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0">1</div>
+            <p className="text-sm font-bold">Search Student</p>
           </div>
-        )}
-        {query.length >= 2 && !searching && results.length === 0 && (
-          <p className="mt-3 text-sm text-gray-400 text-center py-4">No student found matching "{query}"</p>
-        )}
+        </div>
+        <div className="p-5">
+          <div className="relative">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input type="text" value={query}
+              onChange={e => { setQuery(e.target.value); setSelected(null); }}
+              placeholder="Type student name or admission number..."
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-[13px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            {searching && <Loader2 className="w-4 h-4 text-blue-500 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />}
+          </div>
+
+          {results.length > 0 && !selected && (
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {results.map(s => (
+                <button key={s.id} onClick={() => setSelected(s)}
+                  className="text-left bg-white border border-gray-200 rounded-2xl p-4 hover:border-blue-400 hover:shadow-md transition-all group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center text-xs font-extrabold shrink-0">
+                      {s.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold text-gray-900 truncate">{s.full_name}</p>
+                      <p className="text-[11px] text-gray-500">{s.admission_no} · Class {s.class} {s.stream}</p>
+                    </div>
+                    <Badge label={s.paymentStatus || 'No Invoice'} />
+                  </div>
+                  <p className="text-[11px] text-red-600 mt-2 font-semibold pl-12">Balance: {fmt(s.balance || 0)}</p>
+                </button>
+              ))}
+            </div>
+          )}
+          {query.length >= 2 && !searching && results.length === 0 && (
+            <div className="mt-4 text-center py-8">
+              <Search className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+              <p className="text-[13px] text-gray-400">No student found matching &ldquo;{query}&rdquo;</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Step 2 – Student Fee Card */}
       {selected && studentData && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">2</div>
-              <p className="text-sm font-bold text-gray-900">Student Fee Card</p>
+        <div className="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden">
+          {/* Dark gradient header */}
+          <div className="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0">2</div>
+              <p className="text-sm font-bold">Student Fee Card</p>
             </div>
-            <button onClick={() => { setSelected(null); setQuery(''); }} className="text-gray-400 hover:text-gray-600">
+            <button onClick={() => { setSelected(null); setQuery(''); }} className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Identity */}
-          <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-base font-extrabold shrink-0">
-                {student?.full_name?.split(' ').map(n=>n[0]).join('').slice(0,2)}
+          <div className="p-5 space-y-4">
+            {/* Identity – gradient header card */}
+            <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl p-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center text-base font-extrabold shrink-0 ring-2 ring-white/20">
+                  {student?.full_name?.split(' ').map(n=>n[0]).join('').slice(0,2)}
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-extrabold text-white">{student?.full_name}</p>
+                  <div className="flex flex-wrap gap-3 mt-1.5 text-[11px] text-slate-300">
+                    <span className="flex items-center gap-1"><User className="w-3 h-3" /> {student?.admission_no}</span>
+                    <span className="flex items-center gap-1"><GraduationCap className="w-3 h-3" /> Class {student?.class} {student?.stream}</span>
+                    <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {student?.guardian_name} · {student?.guardian_tel}</span>
+                  </div>
+                </div>
+                <Badge label={payStatus} />
               </div>
-              <div className="flex-1">
-                <p className="text-base font-extrabold text-gray-900">{student?.full_name}</p>
-                <div className="flex flex-wrap gap-3 mt-1 text-[11px] text-gray-600">
-                  <span className="flex items-center gap-1"><User className="w-3 h-3" /> {student?.admission_no}</span>
-                  <span className="flex items-center gap-1"><GraduationCap className="w-3 h-3" /> Class {student?.class} {student?.stream}</span>
-                  <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {student?.guardian_name} · {student?.guardian_tel}</span>
+            </div>
+
+            {/* Fee Breakdown */}
+            {feeStr && (
+              <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                <div className="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-wider">Fee Structure — Class {student?.class}</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[13px]">
+                    <tbody className="divide-y divide-gray-100">
+                      <tr className="bg-white"><td className="px-5 py-2.5 text-gray-600">Tuition Fee</td><td className="px-5 py-2.5 text-right font-semibold">{fmt(feeStr.tuition)}</td></tr>
+                      <tr className="bg-gray-50"><td className="px-5 py-2.5 text-gray-600">Activity Fee</td><td className="px-5 py-2.5 text-right font-semibold">{fmt(feeStr.activity)}</td></tr>
+                      {feeStr.transport > 0 && <tr className="bg-white"><td className="px-5 py-2.5 text-gray-600">Transport</td><td className="px-5 py-2.5 text-right font-semibold">{fmt(feeStr.transport)}</td></tr>}
+                      <tr className="bg-blue-700 text-white font-bold"><td className="px-5 py-2.5">Total Term Fee</td><td className="px-5 py-2.5 text-right">{fmt(summary.fee)}</td></tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
-              <Badge label={payStatus} />
-            </div>
-          </div>
+            )}
 
-          {/* Fee Breakdown */}
-          {feeStr && (
-            <div className="border border-gray-200 rounded-lg overflow-hidden mb-4">
-              <div className="bg-gray-800 text-white px-4 py-2 text-xs font-bold">Fee Structure — Class {student?.class}</div>
-              <table className="w-full text-xs">
-                <tbody className="divide-y divide-gray-100">
-                  <tr className="bg-white"><td className="px-4 py-2 text-gray-600">Tuition Fee</td><td className="px-4 py-2 text-right font-semibold">{fmt(feeStr.tuition)}</td></tr>
-                  <tr className="bg-gray-50"><td className="px-4 py-2 text-gray-600">Activity Fee</td><td className="px-4 py-2 text-right font-semibold">{fmt(feeStr.activity)}</td></tr>
-                  {feeStr.transport > 0 && <tr className="bg-white"><td className="px-4 py-2 text-gray-600">Transport</td><td className="px-4 py-2 text-right font-semibold">{fmt(feeStr.transport)}</td></tr>}
-                  <tr className="bg-blue-700 text-white font-bold"><td className="px-4 py-2">Total Term Fee</td><td className="px-4 py-2 text-right">{fmt(summary.fee)}</td></tr>
-                </tbody>
-              </table>
+            {/* Summary stat pills */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="border-l-4 border-gray-400 bg-white rounded-2xl shadow-card p-4 border border-gray-100">
+                <p className="text-[11px] text-gray-500 font-medium">Total Fee</p>
+                <p className="text-base font-extrabold text-gray-900 mt-0.5">{fmt(summary.fee)}</p>
+              </div>
+              <div className="border-l-4 border-emerald-500 bg-white rounded-2xl shadow-card p-4 border border-gray-100">
+                <p className="text-[11px] text-emerald-600 font-medium">Paid</p>
+                <p className="text-base font-extrabold text-emerald-700 mt-0.5">{fmt(summary.paid)}</p>
+              </div>
+              <div className={`border-l-4 bg-white rounded-2xl shadow-card p-4 border border-gray-100 ${balance > 0 ? 'border-l-red-500' : 'border-l-emerald-500'}`}>
+                <p className={`text-[11px] font-medium ${balance > 0 ? 'text-red-500' : 'text-emerald-600'}`}>Balance</p>
+                <p className={`text-base font-extrabold mt-0.5 ${balance > 0 ? 'text-red-700' : 'text-emerald-700'}`}>{fmt(balance)}</p>
+              </div>
             </div>
-          )}
 
-          {/* Summary */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="bg-gray-50 rounded-lg p-3 text-center border border-gray-200">
-              <p className="text-[10px] text-gray-500">Total Fee</p>
-              <p className="text-sm font-extrabold text-gray-900 mt-0.5">{fmt(summary.fee)}</p>
-            </div>
-            <div className="bg-emerald-50 rounded-lg p-3 text-center border border-emerald-200">
-              <p className="text-[10px] text-emerald-600">Paid</p>
-              <p className="text-sm font-extrabold text-emerald-700 mt-0.5">{fmt(summary.paid)}</p>
-            </div>
-            <div className={`rounded-lg p-3 text-center border ${balance > 0 ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
-              <p className={`text-[10px] ${balance > 0 ? 'text-red-500' : 'text-emerald-600'}`}>Balance</p>
-              <p className={`text-sm font-extrabold mt-0.5 ${balance > 0 ? 'text-red-700' : 'text-emerald-700'}`}>{fmt(balance)}</p>
-            </div>
-          </div>
-
-          {/* Progress */}
-          <div className="mb-4">
-            <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-              <span>Payment Progress</span><span className="font-bold">{pct}%</span>
-            </div>
-            <div className="w-full bg-gray-100 rounded-full h-2.5">
-              <div className={`h-2.5 rounded-full ${pct===100?'bg-emerald-500':pct>50?'bg-blue-500':'bg-orange-400'}`} style={{ width: `${pct}%` }} />
-            </div>
-          </div>
-
-          {/* Payment history */}
-          {payments.length > 0 && (
+            {/* Progress */}
             <div>
-              <p className="text-[11px] font-bold text-gray-700 mb-2">Previous Payments This Term</p>
-              <table className="w-full text-xs border border-gray-200 rounded-lg overflow-hidden">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-gray-600 font-semibold">Receipt</th>
-                    <th className="px-3 py-2 text-left text-gray-600 font-semibold">Date</th>
-                    <th className="px-3 py-2 text-left text-gray-600 font-semibold">Method</th>
-                    <th className="px-3 py-2 text-right text-gray-600 font-semibold">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {payments.map(p => (
-                    <tr key={p.receipt_no} className="bg-white">
-                      <td className="px-3 py-2 font-mono text-gray-500">{p.receipt_no}</td>
-                      <td className="px-3 py-2 text-gray-600">{String(p.payment_date || '').slice(0,10)}</td>
-                      <td className="px-3 py-2"><Badge label={p.payment_method} /></td>
-                      <td className="px-3 py-2 text-right font-semibold">{fmt(p.amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="flex justify-between text-[11px] text-gray-500 mb-1.5">
+                <span>Payment Progress</span><span className="font-bold">{pct}%</span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-2.5">
+                <div className={`h-2.5 rounded-full transition-all ${pct===100?'bg-emerald-500':pct>50?'bg-blue-500':'bg-orange-400'}`} style={{ width: `${pct}%` }} />
+              </div>
             </div>
-          )}
+
+            {/* Payment history */}
+            {payments.length > 0 && (
+              <div>
+                <p className="text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-2">Previous Payments This Term</p>
+                <div className="overflow-x-auto rounded-xl border border-gray-200">
+                  <table className="w-full text-[13px]">
+                    <thead>
+                      <tr className="bg-gray-100 border-b border-gray-200">
+                        <th className="px-4 py-2.5 text-left text-gray-600 font-semibold">Receipt</th>
+                        <th className="px-4 py-2.5 text-left text-gray-600 font-semibold">Date</th>
+                        <th className="px-4 py-2.5 text-left text-gray-600 font-semibold">Method</th>
+                        <th className="px-4 py-2.5 text-right text-gray-600 font-semibold">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {payments.map(p => (
+                        <tr key={p.receipt_no} className="bg-white hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-2.5 font-mono text-gray-500 text-xs">{p.receipt_no}</td>
+                          <td className="px-4 py-2.5 text-gray-600">{String(p.payment_date || '').slice(0,10)}</td>
+                          <td className="px-4 py-2.5"><Badge label={p.payment_method} /></td>
+                          <td className="px-4 py-2.5 text-right font-semibold text-gray-900">{fmt(p.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* Step 3 – Payment Entry */}
       {selected && studentData && balance > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">3</div>
-            <p className="text-sm font-bold text-gray-900">Enter Payment</p>
-          </div>
-
-          {error && (
-            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-              <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-              <p className="text-xs text-red-700">{error}</p>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Amount (RWF) <span className="text-red-500">*</span></label>
-              <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
-                placeholder={`Max: ${balance.toLocaleString()}`}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              {amount && Number(amount) > 0 && (
-                <p className="text-[10px] text-gray-500 mt-1 italic">{amountInWords(Number(amount))}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Payment Method <span className="text-red-500">*</span></label>
-              <select value={method} onChange={e => setMethod(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option>Cash</option>
-                <option>MoMo</option>
-                <option>Bank</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Reference</label>
-              <input type="text" value={ref} onChange={e => setRef(e.target.value)}
-                placeholder={method === 'Cash' ? 'N/A for cash' : 'MoMo ID or bank ref'}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <div className="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden">
+          <div className="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0">3</div>
+              <p className="text-sm font-bold">Enter Payment</p>
             </div>
           </div>
 
-          <div className="mt-4 flex items-center gap-3">
-            <button onClick={handleConfirm}
-              disabled={!amount || Number(amount) <= 0 || submitting}
-              className="flex items-center gap-2 bg-blue-700 text-white text-sm font-bold px-6 py-2.5 rounded-lg hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed">
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-              {submitting ? 'Processing...' : 'Confirm & Generate Receipt'}
-            </button>
+          <div className="p-5">
+            {error && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                <p className="text-[13px] text-red-700">{error}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">
+                  Amount (RWF) <span className="text-red-500">*</span>
+                </label>
+                <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
+                  placeholder={`Max: ${balance.toLocaleString()}`}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                {amount && Number(amount) > 0 && (
+                  <p className="text-[10px] text-gray-500 mt-1 italic">{amountInWords(Number(amount))}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">
+                  Payment Method <span className="text-red-500">*</span>
+                </label>
+                <select value={method} onChange={e => setMethod(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <option>Cash</option>
+                  <option>MoMo</option>
+                  <option>Bank</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">Reference</label>
+                <input type="text" value={ref} onChange={e => setRef(e.target.value)}
+                  placeholder={method === 'Cash' ? 'N/A for cash' : 'MoMo ID or bank ref'}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <button onClick={handleConfirm}
+                disabled={!amount || Number(amount) <= 0 || submitting}
+                className="flex items-center gap-2 bg-blue-700 text-white text-sm font-bold px-8 py-3 rounded-xl hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm">
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                {submitting ? 'Processing...' : 'Confirm & Generate Receipt'}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {selected && studentData && balance <= 0 && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 flex items-center gap-3">
-          <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0" />
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+          </div>
           <div>
             <p className="text-sm font-bold text-emerald-800">Account Fully Cleared</p>
-            <p className="text-xs text-emerald-600">Full fee of {fmt(summary.fee)} has been paid.</p>
+            <p className="text-[13px] text-emerald-600">Full fee of {fmt(summary.fee)} has been paid. No balance outstanding.</p>
           </div>
         </div>
       )}

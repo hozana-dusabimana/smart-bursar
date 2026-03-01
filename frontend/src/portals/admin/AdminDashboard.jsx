@@ -19,7 +19,7 @@ export default function AdminDashboard() {
   const roleCount = users.reduce((acc, u) => { acc[u.role] = (acc[u.role]||0)+1; return acc; }, {});
 
   return (
-    <div className="max-w-4xl space-y-5">
+    <div className="space-y-5">
       <div className="bg-gradient-to-r from-gray-900 to-gray-700 rounded-2xl p-6 text-white">
         <p className="text-xs text-gray-400">System Administration</p>
         <h1 className="text-xl font-extrabold mt-1">Admin Control Panel</h1>
