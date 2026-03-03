@@ -43,8 +43,10 @@ import AdminLayout from './portals/admin/AdminLayout';
 import AdminDashboard from './portals/admin/AdminDashboard';
 import UserManagement from './portals/admin/UserManagement';
 import SystemSettings from './portals/admin/SystemSettings';
-import AcademicTerms from './portals/admin/AcademicTerms';
 import Notifications from './portals/admin/Notifications';
+import SchoolSetup from './portals/admin/SchoolSetup';
+import InvoiceManagement from './portals/admin/InvoiceManagement';
+import PaymentApprovals from './portals/accountant/PaymentApprovals';
 
 // ── Parent ───────────────────────────────────────────────────
 import ParentPortal from './portals/parent/ParentPortal';
@@ -109,6 +111,8 @@ export default function App() {
             <Route path="/app" element={<Guard roles={['bursar', 'admin']}><AppLayout /></Guard>}>
               <Route index element={<DailyOperations />} />
               <Route path="collect" element={<CollectPayment />} />
+              <Route path="invoices" element={<InvoiceManagement />} />
+              <Route path="approvals" element={<PaymentApprovals />} />
               <Route path="student" element={<StudentFeeCard />} />
               <Route path="enrollment" element={<StudentEnrollment />} />
               <Route path="cashbook" element={<CashBook />} />
@@ -119,8 +123,10 @@ export default function App() {
             </Route>
 
             {/* ── Accountant ── */}
-            <Route path="/accountant" element={<Guard roles={['accountant', 'admin']}><AccountantLayout /></Guard>}>
+            <Route path="/accountant" element={<Guard roles={['accountant', 'admin', 'bursar']}><AccountantLayout /></Guard>}>
               <Route index element={<AccountantOverview />} />
+              <Route path="invoices" element={<InvoiceManagement />} />
+              <Route path="approvals" element={<PaymentApprovals />} />
               <Route path="reconciliation" element={<Reconciliation />} />
               <Route path="expenses" element={<ExpenseApproval />} />
               <Route path="ledger" element={<FullLedger />} />
@@ -137,14 +143,15 @@ export default function App() {
               <Route path="reports" element={<PrincipalReports />} />
             </Route>
 
-            {/* ── Admin ── */}
-            <Route path="/admin" element={<Guard roles={['admin']}><AdminLayout /></Guard>}>
-              <Route index element={<AdminDashboard />} />
-              <Route path="enrollment" element={<StudentEnrollment />} />
-              <Route path="users" element={<UserManagement />} />
-              <Route path="notifications" element={<Notifications />} />
+            {/* ── Admin & Shared Settings ── */}
+            <Route path="/admin" element={<Guard roles={['admin', 'accountant', 'bursar', 'principal', 'parent']}><AdminLayout /></Guard>}>
+              <Route index element={<Guard roles={['admin']}><AdminDashboard /></Guard>} />
+              <Route path="enrollment" element={<Guard roles={['admin']}><StudentEnrollment /></Guard>} />
+              <Route path="users" element={<Guard roles={['admin']}><UserManagement /></Guard>} />
+              <Route path="notifications" element={<Guard roles={['admin', 'accountant']}><Notifications /></Guard>} />
+              <Route path="invoices" element={<Guard roles={['admin', 'accountant', 'bursar']}><InvoiceManagement /></Guard>} />
               <Route path="settings" element={<SystemSettings />} />
-              <Route path="terms" element={<AcademicTerms />} />
+              <Route path="setup" element={<Guard roles={['admin']}><SchoolSetup /></Guard>} />
             </Route>
 
             {/* ── Parent ── */}

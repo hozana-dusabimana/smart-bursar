@@ -8,7 +8,7 @@ exports.list = async (req, res) => {
     // Get active term if not provided
     let termId = term_id;
     if (!termId) {
-      const [[activeTerm]] = await pool.query('SELECT id FROM academic_terms WHERE is_active = 1 LIMIT 1');
+      const [[activeTerm]] = await pool.query('SELECT id FROM academic_terms WHERE is_active = 1 AND school_id = ? LIMIT 1', [req.user.school_id]);
       termId = activeTerm?.id;
     }
 
@@ -64,7 +64,7 @@ exports.list = async (req, res) => {
 exports.getById = async (req, res) => {
   try {
     const { id } = req.params;
-    const termId = req.query.term_id || (await getActiveTermId());
+    const termId = req.query.term_id || (await getActiveTermId(req.user.school_id));
 
     const [[student]] = await pool.query(
       `SELECT s.*, c.name AS class
@@ -82,9 +82,9 @@ exports.getById = async (req, res) => {
 
     const [[invoice]] = await pool.query(
       `SELECT i.*,
-         COALESCE((SELECT SUM(amount) FROM payments WHERE invoice_id = i.id), 0) AS paid
-       FROM invoices i WHERE i.student_id = ? AND i.term_id = ?`,
-      [id, termId]
+         COALESCE((SELECT SUM(amount) FROM payments WHERE invoice_id = i.id AND school_id = ?), 0) AS paid
+       FROM invoices i WHERE i.student_id = ? AND i.term_id = ? AND i.school_id = ?`,
+      [req.user.school_id, id, termId, req.user.school_id]
     );
 
     const [payments] = await pool.query(
@@ -99,8 +99,8 @@ exports.getById = async (req, res) => {
       `SELECT fs.tuition, fs.activity, fs.transport
        FROM fee_structure fs
        JOIN classes c ON c.id = fs.class_id
-       WHERE c.name = ? AND fs.term_id = ?`,
-      [student.class, termId]
+       WHERE c.name = ? AND fs.term_id = ? AND fs.school_id = ?`,
+      [student.class, termId, req.user.school_id]
     );
 
     sendSuccess(res, {
@@ -123,7 +123,7 @@ exports.getById = async (req, res) => {
 exports.create = async (req, res) => {
   const { admission_no, full_name, class_name, stream, guardian_name, guardian_tel, guardian_email, enrolled_at } = req.body;
   try {
-    const [[cls]] = await pool.query('SELECT id FROM classes WHERE name = ?', [class_name]);
+    const [[cls]] = await pool.query('SELECT id FROM classes WHERE name = ? AND school_id = ?', [class_name, req.user.school_id]);
     if (!cls) return sendError(res, 'Invalid class', 400);
 
     const [result] = await pool.query(
@@ -197,7 +197,7 @@ exports.update = async (req, res) => {
   try {
     let classId;
     if (class_name) {
-      const [[cls]] = await pool.query('SELECT id FROM classes WHERE name = ?', [class_name]);
+      const [[cls]] = await pool.query('SELECT id FROM classes WHERE name = ? AND school_id = ?', [class_name, req.user.school_id]);
       if (!cls) return sendError(res, 'Invalid class', 400);
       classId = cls.id;
     }
@@ -234,7 +234,7 @@ exports.resendInvitation = async (req, res) => {
     if (!student) return sendError(res, 'Student not found', 404);
     if (!student.guardian_email) return sendError(res, 'Guardian email not found for this student', 400);
 
-    const [[parentUser]] = await pool.query('SELECT name, email FROM users WHERE email = ?', [student.guardian_email]);
+    const [[parentUser]] = await pool.query('SELECT name, email FROM users WHERE email = ? AND school_id = ?', [student.guardian_email, req.user.school_id]);
     if (!parentUser) return sendError(res, 'Parent account not found', 404);
 
     const { sendEmail } = require('../utils/email');
@@ -259,7 +259,7 @@ exports.resendInvitation = async (req, res) => {
   }
 };
 
-async function getActiveTermId() {
-  const [[t]] = await pool.query('SELECT id FROM academic_terms WHERE is_active = 1 LIMIT 1');
+async function getActiveTermId(schoolId) {
+  const [[t]] = await pool.query('SELECT id FROM academic_terms WHERE is_active = 1 AND school_id = ? LIMIT 1', [schoolId]);
   return t?.id;
 }

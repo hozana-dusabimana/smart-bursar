@@ -2,20 +2,23 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   BookOpen, ChevronLeft, ChevronRight, LogOut,
   LayoutDashboard, Search, BookMarked,
-  Receipt, Wallet, ClipboardList, AlertTriangle, Settings, GraduationCap, X
+  Receipt, Wallet, ClipboardList, AlertTriangle, Settings, GraduationCap, X,
+  DollarSign, CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const NAV = [
-  { path: '/app',            label: 'Daily Operations',   icon: LayoutDashboard, section: 'main'    },
-  { path: '/app/collect',    label: 'Collect Payment',    icon: Receipt,         section: 'main'    },
-  { path: '/app/student',    label: 'Student Fee Card',   icon: Search,          section: 'main'    },
-  { path: '/app/cashbook',   label: 'Cash Book',          icon: BookMarked,      section: 'main'    },
-  { path: '/app/enrollment', label: 'Student Enrollment', icon: GraduationCap,   section: 'students'},
-  { path: '/app/class',      label: 'Class Collection',   icon: ClipboardList,   section: 'reports' },
-  { path: '/app/defaulters', label: 'Defaulters List',    icon: AlertTriangle,   section: 'reports' },
-  { path: '/app/expenses',   label: 'Expenses',           icon: Wallet,          section: 'reports' },
-  { path: '/app/settings',   label: 'Settings',           icon: Settings,        section: 'admin'   },
+  { path: '/app', label: 'Daily Operations', icon: LayoutDashboard, section: 'main' },
+  { path: '/app/collect', label: 'Collect Payment', icon: Receipt, section: 'main' },
+  { path: '/app/invoices', label: 'Fees & Invoices', icon: DollarSign, section: 'main' },
+  { path: '/app/approvals', label: 'Payment Approvals', icon: CheckCircle2, section: 'main' },
+  { path: '/app/student', label: 'Student Fee Card', icon: Search, section: 'main' },
+  { path: '/app/cashbook', label: 'Cash Book', icon: BookMarked, section: 'main' },
+  { path: '/app/enrollment', label: 'Student Enrollment', icon: GraduationCap, section: 'students' },
+  { path: '/app/class', label: 'Class Collection', icon: ClipboardList, section: 'reports' },
+  { path: '/app/defaulters', label: 'Defaulters List', icon: AlertTriangle, section: 'reports' },
+  { path: '/app/expenses', label: 'Expenses', icon: Wallet, section: 'reports' },
+  { path: '/app/settings', label: 'Settings', icon: Settings, section: 'admin' },
 ];
 
 const SECTIONS = { main: 'BURSAR TOOLS', students: 'STUDENTS', reports: 'REPORTS', admin: 'ADMIN' };
@@ -47,7 +50,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
       {/* Logo header */}
       <div className={`flex items-center gap-3 px-4 py-4 border-b border-slate-700/60 shrink-0 ${collapsed ? 'lg:justify-center' : ''}`}>
         <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/40">
-          <BookOpen className="w-4.5 h-4.5 text-white" style={{width:'18px',height:'18px'}} />
+          <BookOpen className="w-4.5 h-4.5 text-white" style={{ width: '18px', height: '18px' }} />
         </div>
         {(!collapsed || mobileOpen) && (
           <div className="flex-1 min-w-0">

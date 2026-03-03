@@ -47,7 +47,7 @@ exports.stats = async (req, res) => {
 exports.sendReminders = async (req, res) => {
   try {
     // Get active term
-    const [[term]] = await pool.query('SELECT * FROM academic_terms WHERE is_active = 1 LIMIT 1');
+    const [[term]] = await pool.query('SELECT * FROM academic_terms WHERE is_active = 1 AND school_id = ? LIMIT 1', [req.user.school_id]);
     if (!term) return sendError(res, 'No active term', 400);
 
     // Get all students with outstanding balances who have guardian email
@@ -59,13 +59,13 @@ exports.sendReminders = async (req, res) => {
              i.total_amount - COALESCE(SUM(p.amount), 0) AS balance
       FROM students s
       JOIN classes c ON s.class_id = c.id
-      JOIN invoices i ON i.student_id = s.id AND i.term_id = ?
-      LEFT JOIN payments p ON p.invoice_id = i.id
+      JOIN invoices i ON i.student_id = s.id AND i.term_id = ? AND i.school_id = ?
+      LEFT JOIN payments p ON p.invoice_id = i.id AND p.school_id = ?
       WHERE s.is_active = 1 AND s.guardian_email IS NOT NULL AND s.guardian_email != ''
         AND s.school_id = ?
       GROUP BY s.id, i.id
       HAVING balance > 0
-    `, [term.id, req.user.school_id]);
+    `, [term.id, req.user.school_id, req.user.school_id, req.user.school_id]);
 
     // Get school config (scoped to the school if possible, or use global as fallback)
     const [configs] = await pool.query('SELECT setting_key, setting_value FROM school_config WHERE school_id = ?', [req.user.school_id]);
@@ -91,12 +91,12 @@ exports.sendReminders = async (req, res) => {
     const [[{ noEmail }]] = await pool.query(`
       SELECT COUNT(*) AS noEmail
       FROM students s
-      JOIN invoices i ON i.student_id = s.id AND i.term_id = ?
-      LEFT JOIN payments p ON p.invoice_id = i.id
+      JOIN invoices i ON i.student_id = s.id AND i.term_id = ? AND i.school_id = ?
+      LEFT JOIN payments p ON p.invoice_id = i.id AND p.school_id = ?
       WHERE s.is_active = 1 AND (s.guardian_email IS NULL OR s.guardian_email = '')
         AND s.school_id = ?
       GROUP BY 1 HAVING (i.total_amount - COALESCE(SUM(p.amount),0)) > 0
-    `, [term.id, req.user.school_id]).catch(() => [[{ noEmail: 0 }]]);
+    `, [term.id, req.user.school_id, req.user.school_id, req.user.school_id]).catch(() => [[{ noEmail: 0 }]]);
 
     sendSuccess(res, {
       sent,

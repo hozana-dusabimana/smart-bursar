@@ -3,7 +3,7 @@ import { Search, FileDown, Phone, GraduationCap, User, Loader2 } from 'lucide-re
 import Badge from '../components/Badge';
 import api from '../api/client';
 import { fmt } from '../utils/format';
-import { exportPDF } from '../utils/pdfExport';
+import { exportFeeCardPDF } from '../utils/exportFeeCard';
 
 function FeeCard({ studentData }) {
   const { student, summary, feeStructure, payments } = studentData;
@@ -14,31 +14,7 @@ function FeeCard({ studentData }) {
   const status  = !fee ? 'No Invoice' : paid >= fee ? 'Cleared' : paid > 0 ? 'Partial' : 'Unpaid';
 
   const handleExport = () => {
-    let running = fee;
-    exportPDF({
-      title:    `Fee Card — ${student?.full_name}`,
-      subtitle: `${student?.admission_no} · Class ${student?.class} ${student?.stream}`,
-      filename: `fee-card-${student?.admission_no}-${new Date().toISOString().slice(0, 10)}.pdf`,
-      summaryRows: [
-        { label: 'Total Fee', value: fmt(fee)     },
-        { label: 'Paid',      value: fmt(paid)    },
-        { label: 'Balance',   value: fmt(balance) },
-        { label: 'Status',    value: status        },
-      ],
-      columns: ['#', 'Receipt No.', 'Date', 'Method', 'Reference', 'Amount', 'Running Balance'],
-      rows: payments.map((p, i) => {
-        running -= Number(p.amount);
-        return [
-          String(i + 1),
-          p.receipt_no,
-          String(p.payment_date || '').slice(0, 10),
-          p.payment_method,
-          p.reference || '—',
-          fmt(p.amount),
-          fmt(Math.max(0, running)),
-        ];
-      }),
-    });
+    exportFeeCardPDF({ studentData, schoolName: student?.school_name || 'Smart Bursar School' });
   };
 
   return (

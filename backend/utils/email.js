@@ -221,6 +221,28 @@ const templates = {
     `, school?.name)
   }),
 
+  // Invoice notification
+  invoice: ({ student, invoice, school }) => ({
+    subject: `New Invoice ${invoice.invoice_no} — ${student.full_name}`,
+    html: wrap(`
+      <p>Dear <strong>Parent/Guardian</strong>,</p>
+      <p>A new invoice has been generated for <strong>${student.full_name}</strong> at ${school.name}.</p>
+      <table class="table">
+        <tr><th>Field</th><th>Details</th></tr>
+        <tr><td>Invoice No.</td><td><strong>${invoice.invoice_no}</strong></td></tr>
+        <tr><td>Student</td><td>${student.full_name}</td></tr>
+        <tr><td>Class</td><td>${student.class_name}</td></tr>
+        <tr><td>Total Amount</td><td class="amount">RWF ${Number(invoice.total_amount).toLocaleString()}</td></tr>
+      </table>
+      <p>You can view the full breakdown and make a payment through the parent portal.</p>
+      <div style="text-align:center; margin:30px 0;">
+        <a href="${process.env.APP_URL}/login?mode=parent" class="btn">Access Parent Portal →</a>
+      </div>
+      <hr class="divider">
+      <p style="font-size:12px;color:#94a3b8;">For any queries, please contact the school office.</p>
+    `, school.name)
+  }),
+
 };
 
 // ── Send function ────────────────────────────────────────────

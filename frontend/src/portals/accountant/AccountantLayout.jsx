@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, CheckSquare, FileText, ChevronLeft, ChevronRight, LogOut, ShieldCheck, TrendingUp, ScrollText, X, Menu } from 'lucide-react';
+import { BarChart3, CheckSquare, FileText, ChevronLeft, ChevronRight, LogOut, ShieldCheck, TrendingUp, ScrollText, X, Menu, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const NAV = [
-  { path: '/accountant',                label: 'Overview',         icon: BarChart3,   end: true },
-  { path: '/accountant/reconciliation', label: 'Reconciliation',   icon: TrendingUp            },
-  { path: '/accountant/expenses',       label: 'Expense Approval', icon: CheckSquare           },
-  { path: '/accountant/ledger',         label: 'Full Ledger',      icon: ScrollText            },
-  { path: '/accountant/audit',          label: 'Audit Log',        icon: ShieldCheck           },
-  { path: '/accountant/reports',        label: 'Reports',          icon: FileText              },
+  { path: '/accountant', label: 'Overview', icon: BarChart3, end: true },
+  { path: '/accountant/invoices', label: 'Fees & Invoices', icon: ScrollText },
+  { path: '/accountant/approvals', label: 'Payment Approvals', icon: CheckSquare },
+  { path: '/accountant/reconciliation', label: 'Reconciliation', icon: TrendingUp },
+  { path: '/accountant/expenses', label: 'Expense Approval', icon: CheckSquare },
+  { path: '/accountant/ledger', label: 'Full Ledger', icon: ScrollText },
+  { path: '/accountant/audit', label: 'Audit Log', icon: ShieldCheck },
+  { path: '/accountant/reports', label: 'Reports', icon: FileText },
+  { path: '/admin/settings', label: 'Account & Settings', icon: Settings },
 ];
 
 export default function AccountantLayout() {
@@ -18,7 +21,7 @@ export default function AccountantLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const initials = user?.name?.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() || 'AC';
+  const initials = user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'AC';
 
   useEffect(() => { setMobileOpen(false); }, [location]);
 
@@ -28,7 +31,7 @@ export default function AccountantLayout() {
         <div className="fixed inset-0 z-30 bg-slate-900/60 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
       <aside className={`flex flex-col bg-slate-800 text-white shrink-0 h-screen fixed lg:relative z-40 sidebar-transition ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${collapsed ? 'lg:w-[72px]' : 'w-[240px]'}`}>
-        <div className={`flex items-center gap-3 p-3 border-b border-slate-700 ${collapsed?'justify-center':''}`}>
+        <div className={`flex items-center gap-3 p-3 border-b border-slate-700 ${collapsed ? 'justify-center' : ''}`}>
           <div className="w-9 h-9 rounded-lg bg-teal-600 flex items-center justify-center shrink-0">
             <BarChart3 className="w-5 h-5 text-white" />
           </div>
@@ -40,13 +43,13 @@ export default function AccountantLayout() {
           {NAV.map(item => (
             <NavLink key={item.path} to={item.path} end={item.end}
               className={({ isActive }) => `flex items-center gap-3 px-2 py-2 rounded-md text-xs font-medium transition-all
-                ${isActive?'bg-teal-600 text-white':'text-slate-400 hover:bg-slate-700 hover:text-white'} ${collapsed?'justify-center':''}`}>
+                ${isActive ? 'bg-teal-600 text-white' : 'text-slate-400 hover:bg-slate-700 hover:text-white'} ${collapsed ? 'justify-center' : ''}`}>
               <item.icon className="w-4 h-4 shrink-0" />
               {!collapsed && <span>{item.label}</span>}
             </NavLink>
           ))}
         </nav>
-        <div className={`border-t border-slate-700 p-3 ${collapsed?'flex justify-center':'flex items-center gap-2'}`}>
+        <div className={`border-t border-slate-700 p-3 ${collapsed ? 'flex justify-center' : 'flex items-center gap-2'}`}>
           <div className="w-7 h-7 rounded-full bg-teal-600 flex items-center justify-center text-xs font-bold shrink-0">{initials}</div>
           {!collapsed && (<><div className="flex-1 min-w-0"><p className="text-xs font-semibold text-white truncate">{user?.name}</p><p className="text-[10px] text-slate-400">Accountant</p></div>
             <button onClick={() => { logout(); navigate('/login'); }} className="p-1 text-slate-500 hover:text-red-400"><LogOut className="w-3.5 h-3.5" /></button></>)}
