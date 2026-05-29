@@ -21,11 +21,11 @@ exports.classCollection = async (req, res) => {
         (i.total_amount - COALESCE(SUM(p.amount), 0)) AS balance
       FROM students s
       JOIN classes c ON s.class_id = c.id
-      LEFT JOIN invoices i ON i.student_id = s.id AND i.term_id = ?
-      LEFT JOIN payments p ON p.invoice_id = i.id
+      LEFT JOIN invoices i ON i.student_id = s.id AND i.term_id = ? AND i.school_id = ?
+      LEFT JOIN payments p ON p.invoice_id = i.id AND p.school_id = ?
       WHERE s.is_active = 1 AND s.school_id = ?
     `;
-    const params = [termId, req.user.school_id];
+    const params = [termId, req.user.school_id, req.user.school_id, req.user.school_id];
     if (cls) { sql += ' AND c.name = ?'; params.push(cls); }
     sql += ' GROUP BY s.id, i.id ORDER BY c.name, s.full_name';
 
@@ -75,13 +75,13 @@ exports.defaulters = async (req, res) => {
          (i.total_amount - COALESCE(SUM(p.amount), 0)) AS balance
        FROM students s
        JOIN classes c ON s.class_id = c.id
-       JOIN invoices i ON i.student_id = s.id AND i.term_id = ?
-       LEFT JOIN payments p ON p.invoice_id = i.id
+       JOIN invoices i ON i.student_id = s.id AND i.term_id = ? AND i.school_id = ?
+       LEFT JOIN payments p ON p.invoice_id = i.id AND p.school_id = ?
        WHERE s.is_active = 1 AND s.school_id = ?
        GROUP BY s.id, i.id
        HAVING balance > 0
        ORDER BY balance DESC`,
-      [termId, req.user.school_id]
+      [termId, req.user.school_id, req.user.school_id, req.user.school_id]
     );
 
     const data = rows.map(r => ({
@@ -114,25 +114,25 @@ exports.dailySummary = async (req, res) => {
          SUM(IF(payment_method='Cash', amount, 0)) AS cash,
          SUM(IF(payment_method='MoMo', amount, 0)) AS momo,
          SUM(IF(payment_method='Bank', amount, 0)) AS bank
-       FROM payments WHERE payment_date = ? AND term_id = ?`,
-      [date, term?.id]
+       FROM payments WHERE payment_date = ? AND term_id = ? AND school_id = ?`,
+      [date, term?.id, req.user.school_id]
     );
 
     const [[termSummary]] = await pool.query(
       `SELECT
          COUNT(DISTINCT s.id) AS total_students,
-         SUM(i.total_amount) AS total_fees_expected,
+         COALESCE(SUM(i.total_amount), 0) AS total_fees_expected,
          COALESCE(SUM(p_total.paid), 0) AS total_collected,
-         COUNT(DISTINCT CASE WHEN COALESCE(p_total.paid,0) >= i.total_amount THEN s.id END) AS cleared,
+         COUNT(DISTINCT CASE WHEN COALESCE(p_total.paid,0) >= COALESCE(i.total_amount,0) AND i.id IS NOT NULL THEN s.id END) AS cleared,
          COUNT(DISTINCT CASE WHEN COALESCE(p_total.paid,0) > 0 AND COALESCE(p_total.paid,0) < i.total_amount THEN s.id END) AS partial,
-         COUNT(DISTINCT CASE WHEN COALESCE(p_total.paid,0) = 0 THEN s.id END) AS unpaid
+         COUNT(DISTINCT CASE WHEN i.id IS NULL OR (COALESCE(p_total.paid,0) = 0 AND i.id IS NOT NULL) THEN s.id END) AS unpaid
        FROM students s
-       JOIN invoices i ON i.student_id = s.id AND i.term_id = ?
+       LEFT JOIN invoices i ON i.student_id = s.id AND i.term_id = ? AND i.school_id = ?
        LEFT JOIN (
          SELECT invoice_id, SUM(amount) AS paid FROM payments WHERE term_id = ? AND school_id = ? GROUP BY invoice_id
        ) p_total ON p_total.invoice_id = i.id
        WHERE s.is_active = 1 AND s.school_id = ?`,
-      [term?.id, term?.id, req.user.school_id, req.user.school_id]
+      [term?.id, req.user.school_id, term?.id, req.user.school_id, req.user.school_id]
     );
 
     sendSuccess(res, {

@@ -209,8 +209,8 @@ exports.resetPassword = async (req, res) => {
       `SELECT prt.*, u.id AS uid, u.name, u.email
        FROM password_reset_tokens prt
        JOIN users u ON prt.user_id = u.id
-       WHERE prt.token = ? AND prt.used_at IS NULL AND prt.expires_at > NOW()`,
-      [token]
+       WHERE prt.token = ? AND prt.used_at IS NULL AND prt.expires_at > ?`,
+      [token, new Date()]
     );
 
     if (!row) return sendError(res, 'Invalid or expired reset token', 400);
@@ -233,8 +233,8 @@ exports.validateResetToken = async (req, res) => {
     const [[row]] = await pool.query(
       `SELECT prt.id, u.email, u.name
        FROM password_reset_tokens prt JOIN users u ON prt.user_id = u.id
-       WHERE prt.token = ? AND prt.used_at IS NULL AND prt.expires_at > NOW()`,
-      [token]
+       WHERE prt.token = ? AND prt.used_at IS NULL AND prt.expires_at > ?`,
+      [token, new Date()]
     );
     if (!row) return sendError(res, 'Invalid or expired token', 400);
     sendSuccess(res, { email: row.email, name: row.name });

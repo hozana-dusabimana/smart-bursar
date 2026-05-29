@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Printer, CheckCircle2, X, User, Phone, GraduationCap, Loader2, AlertCircle } from 'lucide-react';
+import { Search, Printer, CheckCircle2, X, User, Phone, GraduationCap, Loader2, AlertCircle, Receipt } from 'lucide-react';
 import api from '../api/client';
 import { fmt, amountInWords } from '../utils/format';
 import Badge from '../components/Badge';
@@ -37,10 +37,10 @@ function ReceiptModal({ receipt, school, onClose }) {
 
           <div className="bg-gray-50 rounded-lg p-3 mb-4 text-[11px] space-y-1">
             {[
-              ['Student Name',  receipt.student?.full_name],
-              ['Admission No',  receipt.student?.admission_no],
-              ['Class',         `${receipt.student?.class} ${receipt.student?.stream}`],
-              ['Guardian',      receipt.student?.guardian_name],
+              ['Student Name', receipt.student?.full_name],
+              ['Admission No', receipt.student?.admission_no],
+              ['Class', `${receipt.student?.class} ${receipt.student?.stream}`],
+              ['Guardian', receipt.student?.guardian_name],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between">
                 <span className="text-gray-500">{k}:</span>
@@ -94,22 +94,23 @@ function ReceiptModal({ receipt, school, onClose }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function CollectPayment() {
-  const [query,    setQuery]    = useState('');
-  const [results,  setResults]  = useState([]);
-  const [searching,setSearching]= useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState(null);
   const [studentData, setStudentData] = useState(null);
-  const [amount,   setAmount]   = useState('');
-  const [method,   setMethod]   = useState('Cash');
-  const [ref,      setRef]      = useState('');
+  const [amount, setAmount] = useState('');
+  const [method, setMethod] = useState('Cash');
+  const [ref, setRef] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error,    setError]    = useState('');
-  const [receipt,  setReceipt]  = useState(null);
-  const [school,   setSchool]   = useState(null);
+  const [error, setError] = useState('');
+  const [receipt, setReceipt] = useState(null);
+  const [school, setSchool] = useState(null);
+  const [generating, setGenerating] = useState(false);
 
   // Load school config
   useEffect(() => {
-    api.get('/settings').then(r => setSchool(r.data?.config)).catch(() => {});
+    api.get('/settings').then(r => setSchool(r.data?.config)).catch(() => { });
   }, []);
 
   // Debounced search
@@ -129,7 +130,7 @@ export default function CollectPayment() {
   // Load full student data when selected
   useEffect(() => {
     if (!selected) { setStudentData(null); return; }
-    api.get(`/students/${selected.id}`).then(r => setStudentData(r.data)).catch(() => {});
+    api.get(`/students/${selected.id}`).then(r => setStudentData(r.data)).catch(() => { });
   }, [selected]);
 
   const handleConfirm = async () => {
@@ -151,21 +152,37 @@ export default function CollectPayment() {
     }
   };
 
+  const generateInvoice = async () => {
+    if (!selected) return;
+    setGenerating(true);
+    setError('');
+    try {
+      await api.post('/invoices/generate', { student_id: selected.id });
+      // Reload student data
+      const r = await api.get(`/students/${selected.id}`);
+      setStudentData(r.data);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleClose = () => {
     setReceipt(null); setSelected(null); setQuery('');
     setAmount(''); setRef(''); setResults([]);
   };
 
   const summary = studentData?.summary || {};
-  const feeStr  = studentData?.feeStructure;
+  const feeStr = studentData?.feeStructure;
   const student = studentData?.student;
   const payments = studentData?.payments || [];
   const balance = summary.balance || 0;
-  const pct     = summary.fee ? Math.round((summary.paid / summary.fee) * 100) : 0;
+  const pct = summary.fee ? Math.round((summary.paid / summary.fee) * 100) : 0;
 
   const payStatus = !summary.fee ? 'No Invoice'
     : summary.paid >= summary.fee ? 'Cleared'
-    : summary.paid > 0 ? 'Partial' : 'Unpaid';
+      : summary.paid > 0 ? 'Partial' : 'Unpaid';
 
   return (
     <div className="space-y-5">
@@ -237,7 +254,7 @@ export default function CollectPayment() {
             <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl p-4">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center text-base font-extrabold shrink-0 ring-2 ring-white/20">
-                  {student?.full_name?.split(' ').map(n=>n[0]).join('').slice(0,2)}
+                  {student?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </div>
                 <div className="flex-1">
                   <p className="text-base font-extrabold text-white">{student?.full_name}</p>
@@ -292,7 +309,7 @@ export default function CollectPayment() {
                 <span>Payment Progress</span><span className="font-bold">{pct}%</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2.5">
-                <div className={`h-2.5 rounded-full transition-all ${pct===100?'bg-emerald-500':pct>50?'bg-blue-500':'bg-orange-400'}`} style={{ width: `${pct}%` }} />
+                <div className={`h-2.5 rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : pct > 50 ? 'bg-blue-500' : 'bg-orange-400'}`} style={{ width: `${pct}%` }} />
               </div>
             </div>
 
@@ -314,7 +331,7 @@ export default function CollectPayment() {
                       {payments.map(p => (
                         <tr key={p.receipt_no} className="bg-white hover:bg-gray-50 transition-colors">
                           <td className="px-4 py-2.5 font-mono text-gray-500 text-xs">{p.receipt_no}</td>
-                          <td className="px-4 py-2.5 text-gray-600">{String(p.payment_date || '').slice(0,10)}</td>
+                          <td className="px-4 py-2.5 text-gray-600">{String(p.payment_date || '').slice(0, 10)}</td>
                           <td className="px-4 py-2.5"><Badge label={p.payment_method} /></td>
                           <td className="px-4 py-2.5 text-right font-semibold text-gray-900">{fmt(p.amount)}</td>
                         </tr>
@@ -329,7 +346,25 @@ export default function CollectPayment() {
       )}
 
       {/* Step 3 – Payment Entry */}
-      {selected && studentData && balance > 0 && (
+      {selected && studentData && (payStatus === 'No Invoice' ? (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 flex flex-col items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+            <AlertCircle className="w-6 h-6 text-orange-500" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-bold text-orange-800">No Invoice Found</p>
+            <p className="text-[13px] text-orange-600 mb-4">An invoice is required before recording a payment. This usually happens if the fee structure hasn't been set for this term.</p>
+            <button
+              onClick={generateInvoice}
+              disabled={generating}
+              className="bg-orange-600 text-white text-xs font-bold px-6 py-2.5 rounded-xl hover:bg-orange-700 disabled:opacity-50 transition-all flex items-center gap-2 mx-auto shadow-lg shadow-orange-200"
+            >
+              {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Receipt className="w-3.5 h-3.5" />}
+              Generate Invoice Now
+            </button>
+          </div>
+        </div>
+      ) : balance > 0 ? (
         <div className="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden">
           <div className="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -387,7 +422,7 @@ export default function CollectPayment() {
             </div>
           </div>
         </div>
-      )}
+      ) : null)}
 
       {selected && studentData && balance <= 0 && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center gap-4">

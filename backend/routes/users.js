@@ -9,4 +9,7 @@ router.put('/:id/role', auth, rbac('admin'), ctrl.updateRole);
 router.put('/:id/toggle-active', auth, rbac('admin'), ctrl.toggleActive);
 router.put('/:id/reset-password', auth, rbac('admin'), ctrl.resetPassword);
 
+router.get('/profile', auth, ctrl.getProfile);
+router.put('/profile', auth, ctrl.updateProfile);
+
 module.exports = router;

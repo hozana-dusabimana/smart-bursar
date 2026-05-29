@@ -17,9 +17,9 @@ exports.create = async (req, res) => {
     if (!term) return sendError(res, 'No active term found', 400);
 
     const [[invoice]] = await conn.query(
-      `SELECT i.*, COALESCE((SELECT SUM(p2.amount) FROM payments p2 WHERE p2.invoice_id = i.id), 0) AS paid
-       FROM invoices i WHERE i.student_id = ? AND i.term_id = ?`,
-      [student_id, term.id]
+      `SELECT i.*, COALESCE((SELECT SUM(p2.amount) FROM payments p2 WHERE p2.invoice_id = i.id AND p2.school_id = ?), 0) AS paid
+       FROM invoices i WHERE i.student_id = ? AND i.term_id = ? AND i.school_id = ?`,
+      [req.user.school_id, student_id, term.id, req.user.school_id]
     );
     if (!invoice) return sendError(res, 'No invoice found for this student this term', 404);
 
@@ -85,7 +85,7 @@ exports.list = async (req, res) => {
   try {
     const { date, student_id, method, term_id, page = 1, limit = 50 } = req.query;
     let termId = term_id;
-    if (!termId) { const [[t]] = await pool.query('SELECT id FROM academic_terms WHERE is_active=1 LIMIT 1'); termId = t?.id; }
+    if (!termId) { const [[t]] = await pool.query('SELECT id FROM academic_terms WHERE is_active=1 AND school_id=? LIMIT 1', [req.user.school_id]); termId = t?.id; }
 
     let sql = `SELECT p.id, p.receipt_no, p.amount, p.payment_method, p.reference,
       p.payment_date, p.payment_time, p.notes,
@@ -111,8 +111,8 @@ exports.getByReceipt = async (req, res) => {
               (SELECT SUM(p2.amount) FROM payments p2 WHERE p2.invoice_id=i.id AND p2.id<=p.id) AS cumulative_paid
        FROM payments p JOIN students s ON p.student_id=s.id JOIN classes c ON s.class_id=c.id
        JOIN users u ON p.cashier_id=u.id JOIN invoices i ON p.invoice_id=i.id
-       WHERE p.receipt_no=?`,
-      [req.params.receiptNo]
+        WHERE p.receipt_no=? AND p.school_id=?`,
+      [req.params.receiptNo, req.user.school_id]
     );
     if (!payment) return sendError(res, 'Receipt not found', 404);
     const [configs] = await pool.query('SELECT setting_key, setting_value FROM school_config WHERE school_id = ?', [payment.school_id || req.user.school_id]);
@@ -129,15 +129,15 @@ exports.resendReceipt = async (req, res) => {
               c.name AS class, s.stream, u.name AS cashier_name, i.total_amount
        FROM payments p JOIN students s ON p.student_id=s.id JOIN classes c ON s.class_id=c.id
        JOIN users u ON p.cashier_id=u.id JOIN invoices i ON p.invoice_id=i.id
-       WHERE p.id=?`,
-      [req.params.id]
+        WHERE p.id=? AND p.school_id=?`,
+      [req.params.id, req.user.school_id]
     );
     if (!payment) return sendError(res, 'Payment not found', 404);
     if (!payment.guardian_email) return sendError(res, 'No guardian email on file', 400);
 
     const [configs] = await pool.query('SELECT setting_key, setting_value FROM school_config WHERE school_id = ?', [payment.school_id || req.user.school_id]);
     const school = Object.fromEntries(configs.map(c => [c.setting_key, c.setting_value]));
-    const [[term]] = await pool.query('SELECT * FROM academic_terms WHERE id=?', [payment.term_id]);
+    const [[term]] = await pool.query('SELECT * FROM academic_terms WHERE id=? AND school_id=?', [payment.term_id, req.user.school_id]);
 
     await sendEmail({
       to: payment.guardian_email,
@@ -154,5 +154,84 @@ exports.resendReceipt = async (req, res) => {
       },
     });
     sendSuccess(res, null, 'Receipt email sent');
+  } catch (err) { console.error(err); sendError(res); }
+};
+
+exports.submitParentPayment = async (req, res) => {
+  const { student_id, amount, payment_method, reference, notes } = req.body;
+  const proof_url = req.file ? `/uploads/proofs/${req.file.filename}` : null;
+
+  if (!student_id || !amount || !payment_method)
+    return sendError(res, 'Missing required fields', 400);
+
+  try {
+    const [[term]] = await pool.query('SELECT id FROM academic_terms WHERE is_active = 1 AND school_id = ? LIMIT 1', [req.user.school_id]);
+    const [[invoice]] = await pool.query('SELECT id FROM invoices WHERE student_id = ? AND term_id = ? AND school_id = ?', [student_id, term.id, req.user.school_id]);
+
+    if (!invoice) return sendError(res, 'No invoice found', 404);
+
+    const status = payment_method === 'Bank' ? 'pending' : 'approved';
+
+    const [result] = await pool.query(
+      `INSERT INTO payments (invoice_id, student_id, term_id, amount, payment_method, reference, proof_url, status, payment_date, payment_time, school_id, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURDATE(), CURTIME(), ?, ?)`,
+      [invoice.id, student_id, term.id, amount, payment_method, reference || null, proof_url, status, req.user.school_id, notes || null]
+    );
+
+    sendSuccess(res, { id: result.insertId, status }, 'Payment submitted for processing', 201);
+  } catch (err) {
+    console.error(err);
+    sendError(res, 'Submission failed');
+  }
+};
+
+exports.listPending = async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT p.*, s.full_name, s.admission_no, c.name AS class_name
+       FROM payments p
+       JOIN students s ON p.student_id = s.id
+       JOIN classes c ON s.class_id = c.id
+       WHERE p.status = 'pending' AND p.school_id = ?
+       ORDER BY p.id DESC`,
+      [req.user.school_id]
+    );
+    sendSuccess(res, rows);
+  } catch (err) { console.error(err); sendError(res); }
+};
+
+exports.approvePayment = async (req, res) => {
+  const { id } = req.params;
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [[payment]] = await conn.query('SELECT * FROM payments WHERE id = ? AND school_id = ?', [id, req.user.school_id]);
+    if (!payment) return sendError(res, 'Payment not found', 404);
+
+    const receiptNo = await nextReceiptNo(conn, payment.term_id);
+
+    await conn.query(
+      'UPDATE payments SET status = "approved", receipt_no = ?, cashier_id = ? WHERE id = ?',
+      [receiptNo, req.user.id, id]
+    );
+
+    await conn.commit();
+    sendSuccess(res, { receiptNo }, 'Payment approved');
+  } catch (err) {
+    await conn.rollback();
+    console.error(err);
+    sendError(res, 'Approval failed');
+  } finally { conn.release(); }
+};
+
+exports.rejectPayment = async (req, res) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+  try {
+    await pool.query(
+      'UPDATE payments SET status = "rejected", rejection_reason = ? WHERE id = ? AND school_id = ?',
+      [reason, id, req.user.school_id]
+    );
+    sendSuccess(res, null, 'Payment rejected');
   } catch (err) { console.error(err); sendError(res); }
 };
